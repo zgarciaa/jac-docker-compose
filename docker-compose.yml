@@ -1,0 +1,64 @@
+version: "3.9"
+services:
+  mysql_jac:
+    image: mysql:5.7.40
+    container_name: mysql_jac
+    ports:
+      - "3310:3306"
+    env_file:
+      - config/mysql_jac/.env
+    command: --max-allowed-packet=5120M
+    volumes:
+      - type: volume
+        source: mysql_jac
+        target: /var/lib/mysql
+  redis_jac:
+    image: redis:latest
+    container_name: redis_jac
+    ports:
+      - "6381:6379"
+    volumes:
+      - type: volume
+        source: redis_jac
+        target: /data
+  php_jac:
+    build: config/php_jac
+    container_name: php_jac
+    ports:
+      - "9010:9001"
+    env_file:
+      - config/php_jac/php-fpm/.env
+    volumes:
+      - type: bind
+        source: ./config/php_jac/php-fpm/www.conf
+        target: /usr/local/etc/php-fpm.d/www.conf
+      - type: bind
+        source: ./jac/src
+        target: /var/www/html
+  nginx_jac:
+    build: config/nginx_jac
+    container_name: nginx_jac
+    depends_on:
+      - mysql_jac
+      - redis_jac
+      - php_jac
+    ports:
+      - "8010:80"
+    volumes:
+      - type: bind
+        source: ./jac/src
+        target: /var/www/html
+
+  phpmyadmin_jac:
+    image: phpmyadmin
+    container_name: phpmyadmin_jac
+    depends_on:
+      - mysql_jac
+    restart: always
+    ports:
+      - "8810:80"
+    env_file:
+      - config/phpmyadmin_jac/.env
+volumes:
+  mysql_jac:
+  redis_jac:
